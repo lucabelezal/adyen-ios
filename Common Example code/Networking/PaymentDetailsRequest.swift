@@ -15,7 +15,7 @@ internal struct PaymentDetailsRequest: Request {
     internal let path = "payments/details"
     
     internal let details: AdditionalDetails
-    
+
     internal let paymentData: String
     
     internal var counter: UInt = 0
