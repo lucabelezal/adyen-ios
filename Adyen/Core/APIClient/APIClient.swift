@@ -52,10 +52,6 @@ public final class APIClient: APIClientProtocol {
             return
         }
         
-        adyenPrint("---- Request (/\(request.path)) ----")
-        
-        printAsJSON(body)
-        
         var urlRequest = URLRequest(url: add(queryParameters: request.queryParameters + environment.queryParameters, to: url))
         urlRequest.httpMethod = request.method.rawValue
         if request.method == .post {
@@ -63,6 +59,22 @@ public final class APIClient: APIClientProtocol {
         }
         
         urlRequest.allHTTPHeaderFields = request.headers.merging(environment.headers, uniquingKeysWith: { key1, _ in key1 })
+
+        log(urlRequest: urlRequest, request: request)
+        
+        requestCounter += 1
+        
+        urlSession.adyen.dataTask(with: urlRequest) { [weak self] result in
+            self?.handle(result, request: request, completionHandler: completionHandler)
+        }.resume()
+    }
+
+    private func log<R: Request>(urlRequest: URLRequest, request: R) {
+        adyenPrint("---- Request (/\(request.path)) ----")
+
+        if let body = urlRequest.httpBody {
+            printAsJSON(body)
+        }
 
         if let headers = urlRequest.allHTTPHeaderFields {
             adyenPrint("---- Request Headers (/\(request.path)) ----")
@@ -73,33 +85,37 @@ public final class APIClient: APIClientProtocol {
             adyenPrint("---- Request query (/\(request.path)) ----")
             adyenPrint(queryParams)
         }
-        
-        requestCounter += 1
-        
-        urlSession.adyen.dataTask(with: urlRequest) { [weak self] result in
-            
-            self?.requestCounter -= 1
-            
-            switch result {
-            case let .success(data):
-                do {
-                    adyenPrint("---- Response (/\(request.path)) ----")
-                    self?.printAsJSON(data)
-                    
-                    if let apiError: APIError = try? Coder.decode(data) {
-                        completionHandler(.failure(apiError))
-                    } else {
-                        let response = try Coder.decode(data) as R.ResponseType
-                        completionHandler(.success(response))
-                    }
-                } catch {
-                    completionHandler(.failure(error))
-                }
-            case let .failure(error):
-                completionHandler(.failure(error))
+    }
+
+    private func handle<R: Request>(_ result: Result<Data, Error>,
+                                    request: R,
+                                    completionHandler: @escaping CompletionHandler<R.ResponseType>) {
+        requestCounter -= 1
+
+        switch result {
+        case let .success(data):
+            handle(data, request: request, completionHandler: completionHandler)
+        case let .failure(error):
+            completionHandler(.failure(error))
+        }
+    }
+
+    private func handle<R: Request>(_ data: Data,
+                                    request: R,
+                                    completionHandler: @escaping CompletionHandler<R.ResponseType>) {
+        do {
+            adyenPrint("---- Response (/\(request.path)) ----")
+            printAsJSON(data)
+
+            if let apiError: APIError = try? Coder.decode(data) {
+                completionHandler(.failure(apiError))
+            } else {
+                let response = try Coder.decode(data) as R.ResponseType
+                completionHandler(.success(response))
             }
-            
-        }.resume()
+        } catch {
+            completionHandler(.failure(error))
+        }
     }
     
     /// :nodoc:
