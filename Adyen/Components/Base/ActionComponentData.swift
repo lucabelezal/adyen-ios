@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019 Adyen N.V.
+// Copyright (c) 2020 Adyen N.V.
 //
 // This file is open source and available under the MIT license. See the LICENSE file for more info.
 //
@@ -13,7 +13,7 @@ public struct ActionComponentData {
     public let details: AdditionalDetails
     
     /// The server-generated payment data that should be submitted to the `/payments/details` endpoint.
-    public let paymentData: String
+    public let paymentData: String?
     
     /// Initializes the action component data.
     ///
@@ -22,7 +22,7 @@ public struct ActionComponentData {
     /// - Parameters:
     ///   - details: The additional details supplied by the action component.
     ///   - paymentData: The server-generated payment data that should be submitted to the `/payments/details` endpoint.
-    public init(details: AdditionalDetails, paymentData: String) {
+    public init(details: AdditionalDetails, paymentData: String?) {
         self.details = details
         self.paymentData = paymentData
     }
