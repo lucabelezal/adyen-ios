@@ -185,7 +185,7 @@ internal final class PaymentsController {
             }
         case let .failure(error):
             currentComponent?.stopLoading(withSuccess: false) { [weak self] in
-                self?.presentAlert(with: error)
+                self?.finish(with: error)
             }
         }
     }
